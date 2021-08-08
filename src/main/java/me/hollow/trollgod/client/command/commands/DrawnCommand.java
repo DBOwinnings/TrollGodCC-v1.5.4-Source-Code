@@ -1,0 +1,22 @@
+package me.hollow.trollgod.client.command.commands;
+
+import me.hollow.trollgod.client.command.*;
+import me.hollow.trollgod.*;
+import me.hollow.trollgod.api.util.*;
+import me.hollow.trollgod.client.modules.*;
+
+@CommandManifest(label = "Drawn", aliases = { "Hide", "d" })
+public class DrawnCommand extends Command
+{
+    @Override
+    public void execute(final String[] args) {
+        if (args.length < 2) {
+            return;
+        }
+        final Module module = TrollGod.INSTANCE.getModuleManager().getModuleByLabel(args[1]);
+        if (module != null) {
+            module.setDrawn(module.isHidden());
+            MessageUtil.sendClientMessage(module.getLabel() + " has been " + (module.isHidden() ? "hidden" : "unhidden"), false);
+        }
+    }
+}
