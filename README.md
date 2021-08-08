@@ -5,6 +5,6 @@
  
 **BREAKING NEWS: TROLLGOD GETS SPLASHED BY A NON-CODER 🤯🤯🤯**
 
-I am not sure if the whole source is buildable quite yet but it's all of it; hopefully somebody considers making a full buildable version for this client.
+I am not sure if the whole source is buildable quite yet but it's all of it; if so, hopefully somebody considers making a full buildable version for this client.
 
 **DBOwinnings out <3**
