@@ -1,18 +1,22 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.api.mixin.mixins.gui;
 
-import org.spongepowered.asm.mixin.*;
-import net.minecraft.client.gui.*;
-import org.spongepowered.asm.mixin.injection.callback.*;
-import me.hollow.trollgod.client.modules.visual.*;
-import org.spongepowered.asm.mixin.injection.*;
+import me.hollow.trollgod.client.modules.visual.NoRender;
+import net.minecraft.client.gui.GuiBossOverlay;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin({ GuiBossOverlay.class })
-public class MixinGuiBossOverlay
-{
-    @Inject(method = { "renderBossHealth" }, at = { @At("HEAD") }, cancellable = true)
-    public void render(final CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.noBossOverlay.getValue()) {
+@Mixin(value={GuiBossOverlay.class})
+public class MixinGuiBossOverlay {
+    @Inject(method={"renderBossHealth"}, at={@At(value="HEAD")}, cancellable=true)
+    public void render(CallbackInfo ci) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.noBossOverlay.getValue().booleanValue()) {
             ci.cancel();
         }
     }
 }
+

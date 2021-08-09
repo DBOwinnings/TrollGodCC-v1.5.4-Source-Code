@@ -35,7 +35,7 @@ public class RainbowText implements Minecraftable
             }
             if (index < characters.length) {
                 final char colorCode = characters[index];
-                if (colorCode == '§') {
+                if (colorCode == '\uFFFD' ) {
                     final char colorChar = characters[index + 1];
                     final int codeIndex = "0123456789abcdef".indexOf(colorChar);
                     if (codeIndex < 0) {
@@ -57,7 +57,7 @@ public class RainbowText implements Minecraftable
     
     static {
         RainbowText.rainbow = new Rainbow();
-        COLOR_CODE_PATTERN = Pattern.compile("§[0123456789abcdefklmnor]");
+        COLOR_CODE_PATTERN = Pattern.compile("ï¿½[0123456789abcdefklmnor]");
         colorCodes = new int[] { 0, 170, 43520, 43690, 11141120, 11141290, 16755200, 11184810, 5592405, 5592575, 5635925, 5636095, 16733525, 16733695, 16777045, 16777215 };
     }
     

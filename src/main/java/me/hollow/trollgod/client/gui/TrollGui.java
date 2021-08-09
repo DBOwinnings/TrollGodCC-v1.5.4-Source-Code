@@ -1,135 +1,133 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.gui;
 
-import net.minecraft.client.gui.*;
-import me.hollow.trollgod.client.gui.components.*;
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.*;
-import me.hollow.trollgod.client.gui.components.items.buttons.*;
-import me.hollow.trollgod.client.gui.components.items.*;
-import java.util.*;
-import java.util.function.*;
-import org.lwjgl.input.*;
-import java.io.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import me.hollow.trollgod.TrollGod;
+import me.hollow.trollgod.client.gui.components.Component;
+import me.hollow.trollgod.client.gui.components.items.Item;
+import me.hollow.trollgod.client.gui.components.items.buttons.ModuleButton;
+import me.hollow.trollgod.client.modules.Module;
+import net.minecraft.client.gui.GuiScreen;
+import org.lwjgl.input.Mouse;
 
-public class TrollGui extends GuiScreen
-{
-    private final ArrayList<Component> components;
-    private static TrollGui INSTANCE;
-    
+public class TrollGui
+extends GuiScreen {
+    private final ArrayList<Component> components = new ArrayList();
+    private static TrollGui INSTANCE = new TrollGui();
+
     public TrollGui() {
-        this.components = new ArrayList<Component>();
-        (TrollGui.INSTANCE = this).load();
+        INSTANCE = this;
+        this.load();
     }
-    
+
     public static TrollGui getInstance() {
-        if (TrollGui.INSTANCE == null) {
-            TrollGui.INSTANCE = new TrollGui();
+        if (INSTANCE == null) {
+            INSTANCE = new TrollGui();
         }
-        return TrollGui.INSTANCE;
+        return INSTANCE;
     }
-    
+
     public static TrollGui getClickGui() {
-        return getInstance();
+        return TrollGui.getInstance();
     }
-    
+
     private void load() {
         int x = -84;
         for (final Module.Category category : Module.Category.values()) {
-            final ArrayList<Component> components = this.components;
-            final String name = category.name();
-            x += 110;
-            components.add(new Component(name, x, 4, true) {
+            this.components.add(new Component(category.name(), x += 110, 4, true){
+
                 @Override
                 public void setupItems() {
-                    for (final Module module : TrollGod.INSTANCE.getModuleManager().getModulesByCategory(category)) {
+                    for (Module module : TrollGod.INSTANCE.getModuleManager().getModulesByCategory(category)) {
                         this.addButton(new ModuleButton(module));
                     }
                 }
             });
         }
-        for (final Component component : this.components) {
-            component.getItems().sort(Comparator.comparing((Function<? super Item, ? extends Comparable>)Item::getName));
+        for (Component component : this.components) {
+            component.getItems().sort(Comparator.comparing(Item::getName));
         }
     }
-    
-    public void updateModule(final Module module) {
-        for (final Component component : this.components) {
-            for (final Item item : component.getItems()) {
-                if (item instanceof ModuleButton) {
-                    final ModuleButton button = (ModuleButton)item;
-                    final Module mod = button.getModule();
-                    if (module != null && module.equals(mod)) {
-                        button.initSettings();
-                        break;
-                    }
-                    continue;
-                }
+
+    public void updateModule(Module module) {
+        block0: for (Component component : this.components) {
+            for (Item item : component.getItems()) {
+                if (!(item instanceof ModuleButton)) continue;
+                ModuleButton button = (ModuleButton)item;
+                Module mod = button.getModule();
+                if (module == null || !module.equals(mod)) continue;
+                button.initSettings();
+                continue block0;
             }
         }
     }
-    
-    public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
+
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.checkMouseWheel();
-        for (final Component component : this.components) {
+        for (Component component : this.components) {
             component.drawScreen(mouseX, mouseY, partialTicks);
         }
     }
-    
-    public void mouseClicked(final int mouseX, final int mouseY, final int clickedButton) {
-        for (final Component component : this.components) {
+
+    public void mouseClicked(int mouseX, int mouseY, int clickedButton) {
+        for (Component component : this.components) {
             component.mouseClicked(mouseX, mouseY, clickedButton);
         }
     }
-    
-    public void mouseReleased(final int mouseX, final int mouseY, final int releaseButton) {
-        for (final Component component : this.components) {
+
+    public void mouseReleased(int mouseX, int mouseY, int releaseButton) {
+        for (Component component : this.components) {
             component.mouseReleased(mouseX, mouseY, releaseButton);
         }
     }
-    
+
     public boolean doesGuiPauseGame() {
         return false;
     }
-    
+
     public final ArrayList<Component> getComponents() {
         return this.components;
     }
-    
+
     public void checkMouseWheel() {
-        final int dWheel = Mouse.getDWheel();
-        if (dWheel < 0) {
-            for (final Component component : this.components) {
-                component.setY(component.getY() - 10);
+        block3: {
+            int dWheel;
+            block2: {
+                dWheel = Mouse.getDWheel();
+                if (dWheel >= 0) break block2;
+                for (Component component : this.components) {
+                    component.setY(component.getY() - 10);
+                }
+                break block3;
             }
-        }
-        else if (dWheel > 0) {
-            for (final Component component : this.components) {
+            if (dWheel <= 0) break block3;
+            for (Component component : this.components) {
                 component.setY(component.getY() + 10);
             }
         }
     }
-    
+
     public int getTextOffset() {
         return -6;
     }
-    
-    public Component getComponentByName(final String name) {
-        for (final Component component : this.components) {
-            if (component.getName().equalsIgnoreCase(name)) {
-                return component;
-            }
+
+    public Component getComponentByName(String name) {
+        for (Component component : this.components) {
+            if (!component.getName().equalsIgnoreCase(name)) continue;
+            return component;
         }
         return null;
     }
-    
-    public void keyTyped(final char typedChar, final int keyCode) throws IOException {
+
+    public void keyTyped(char typedChar, int keyCode) throws IOException {
         super.keyTyped(typedChar, keyCode);
-        for (final Component component : this.components) {
+        for (Component component : this.components) {
             component.onKeyTyped(typedChar, keyCode);
         }
     }
-    
-    static {
-        TrollGui.INSTANCE = new TrollGui();
-    }
 }
+

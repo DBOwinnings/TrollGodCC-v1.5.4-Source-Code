@@ -1,15 +1,18 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.api.mixin.mixins.network;
 
-import org.spongepowered.asm.mixin.*;
-import net.minecraft.network.play.server.*;
-import org.spongepowered.asm.mixin.gen.*;
+import net.minecraft.network.play.server.SPacketPlayerPosLook;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({ SPacketPlayerPosLook.class })
-public interface AccessorSPacketPlayerPosLook
-{
-    @Accessor("yaw")
-    void setYaw(final float p0);
-    
-    @Accessor("pitch")
-    void setPitch(final float p0);
+@Mixin(value={SPacketPlayerPosLook.class})
+public interface AccessorSPacketPlayerPosLook {
+    @Accessor(value="yaw")
+    public void setYaw(float var1);
+
+    @Accessor(value="pitch")
+    public void setPitch(float var1);
 }
+

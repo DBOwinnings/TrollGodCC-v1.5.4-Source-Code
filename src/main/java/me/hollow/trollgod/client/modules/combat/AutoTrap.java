@@ -1,58 +1,54 @@
-//Deobfuscated with https://github.com/PetoPetko/Minecraft-Deobfuscator3000 using mappings "1.12 stable mappings"!
-
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.combat;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.api.property.*;
-import net.minecraft.entity.player.*;
-import java.util.*;
-import net.minecraft.util.math.*;
-import net.minecraft.init.*;
-import net.minecraft.item.*;
-import net.minecraft.network.play.client.*;
-import net.minecraft.network.*;
-import com.mojang.realmsclient.gui.*;
-import me.hollow.trollgod.api.util.*;
-import net.minecraft.entity.*;
+import com.mojang.realmsclient.gui.ChatFormatting;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.api.util.BlockUtil;
+import me.hollow.trollgod.api.util.EntityUtil;
+import me.hollow.trollgod.api.util.ItemUtil;
+import me.hollow.trollgod.api.util.MessageUtil;
+import me.hollow.trollgod.api.util.Timer;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
+import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.client.CPacketHeldItemChange;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
 
-@ModuleManifest(label = "AutoTrap", listen = false, category = Category.COMBAT, color = 14204927)
-public final class AutoTrap extends Module
-{
-    private Setting<Type> type;
-    private final Setting<Integer> delay;
-    private final Setting<Integer> blocksPerPlace;
-    private final Setting<Double> targetRange;
-    private final Setting<Double> range;
-    private final Setting<Boolean> antiSelf;
-    private final Setting<Boolean> retry;
-    private final Setting<Boolean> feet;
-    private final Setting<Integer> retryer;
-    private final Map<BlockPos, Integer> retries;
-    private final Timer retryTimer;
-    private final Timer timer;
-    private boolean didPlace;
+@ModuleManifest(label="AutoTrap", listen=false, category=Module.Category.COMBAT, color=14204927)
+public final class AutoTrap
+extends Module {
+    private Setting<Type> type = this.register(new Setting<Type>("Type", Type.PRESERVE));
+    private final Setting<Integer> delay = this.register(new Setting<Integer>("Delay/Place", 50, 0, 250));
+    private final Setting<Integer> blocksPerPlace = this.register(new Setting<Integer>("Block/Place", 8, 1, 30));
+    private final Setting<Double> targetRange = this.register(new Setting<Double>("Target Range", 10.0, 0.0, 20.0));
+    private final Setting<Double> range = this.register(new Setting<Double>("Place Range", 6.0, 0.0, 10.0));
+    private final Setting<Boolean> antiSelf = this.register(new Setting<Boolean>("Anti Self", false));
+    private final Setting<Boolean> retry = this.register(new Setting<Boolean>("Retry", false));
+    private final Setting<Boolean> feet = this.register(new Setting<Boolean>("Feet", true));
+    private final Setting<Integer> retryer = this.register(new Setting<Object>("Retries", 4, 1, 15, v -> this.retry.getValue()));
+    private final Map<BlockPos, Integer> retries = new HashMap<BlockPos, Integer>();
+    private final Timer retryTimer = new Timer();
+    private final Timer timer = new Timer();
+    private boolean didPlace = false;
     private int lastHotbarSlot;
-    private int placements;
+    private int placements = 0;
     public EntityPlayer target;
     public static boolean placing;
-    
-    public AutoTrap() {
-        this.type = (Setting<Type>)this.register(new Setting("Type", (T)Type.PRESERVE));
-        this.delay = (Setting<Integer>)this.register(new Setting("Delay/Place", (T)50, (T)0, (T)250));
-        this.blocksPerPlace = (Setting<Integer>)this.register(new Setting("Block/Place", (T)8, (T)1, (T)30));
-        this.targetRange = (Setting<Double>)this.register(new Setting("Target Range", (T)10.0, (T)0.0, (T)20.0));
-        this.range = (Setting<Double>)this.register(new Setting("Place Range", (T)6.0, (T)0.0, (T)10.0));
-        this.antiSelf = (Setting<Boolean>)this.register(new Setting("Anti Self", (T)false));
-        this.retry = (Setting<Boolean>)this.register(new Setting("Retry", (T)false));
-        this.feet = (Setting<Boolean>)this.register(new Setting("Feet", (T)true));
-        this.retryer = (Setting<Integer>)this.register(new Setting("Retries", (T)4, (T)1, (T)15, v -> this.retry.getValue()));
-        this.retries = new HashMap<BlockPos, Integer>();
-        this.retryTimer = new Timer();
-        this.timer = new Timer();
-        this.didPlace = false;
-        this.placements = 0;
-    }
-    
+
     @Override
     public void onEnable() {
         if (this.isNull()) {
@@ -61,12 +57,12 @@ public final class AutoTrap extends Module
         }
         this.retries.clear();
     }
-    
+
     @Override
     public void onDisable() {
-        AutoTrap.placing = false;
+        placing = false;
     }
-    
+
     @Override
     public void onUpdate() {
         if (this.check()) {
@@ -74,19 +70,18 @@ public final class AutoTrap extends Module
         }
         if (this.type.getValue() == Type.PRESERVE) {
             this.doPreserve(this.target);
-        }
-        else {
+        } else {
             this.doNormal(BlockUtil.targets(this.target.getPositionVector(), this.feet.getValue()));
         }
         if (this.didPlace) {
             this.timer.reset();
         }
     }
-    
-    private List<BlockPos> getPreserve(final EntityPlayer player) {
-        final List<BlockPos> positions = new ArrayList<BlockPos>();
+
+    private List<BlockPos> getPreserve(EntityPlayer player) {
+        ArrayList<BlockPos> positions = new ArrayList<BlockPos>();
         positions.add(new BlockPos(player.posX, player.posY + 2.0, player.posZ));
-        final int placeability = BlockUtil.isPositionPlaceable(positions.get(0), false);
+        int placeability = BlockUtil.isPositionPlaceable((BlockPos)positions.get(0), false);
         switch (placeability) {
             case 0: {
                 return new ArrayList<BlockPos>();
@@ -95,59 +90,57 @@ public final class AutoTrap extends Module
                 return positions;
             }
             case 1: {
-                if (BlockUtil.isPositionPlaceable(positions.get(0), false) == 3) {
+                if (BlockUtil.isPositionPlaceable((BlockPos)positions.get(0), false) == 3) {
                     return positions;
                 }
             }
             case 2: {
                 positions.add(new BlockPos(player.posX + 1.0, player.posY + 1.0, player.posZ));
                 positions.add(new BlockPos(player.posX + 1.0, player.posY + 2.0, player.posZ));
-                break;
             }
         }
-        positions.sort(Comparator.comparingDouble(Vec3i::getY));
+        positions.sort(Comparator.comparingDouble( Vec3i::getY ));
         return positions;
     }
-    
-    private void doPreserve(final EntityPlayer player) {
-        for (final BlockPos position : this.getPreserve(player)) {
-            if (BlockUtil.isPositionPlaceable(position, false) != 3) {
-                continue;
-            }
+
+    private void doPreserve(EntityPlayer player) {
+        for (BlockPos position : this.getPreserve(player)) {
+            if (BlockUtil.isPositionPlaceable(position, false) != 3) continue;
             this.placeBlock(position);
         }
     }
-    
-    private void doNormal(final List<Vec3d> list) {
+
+    private void doNormal(List<Vec3d> list) {
         list.sort((vec3d, vec3d2) -> Double.compare(this.mc.player.getDistanceSq(vec3d2.x, vec3d2.y, vec3d2.z), this.mc.player.getDistanceSq(vec3d.x, vec3d.y, vec3d.z)));
         list.sort(Comparator.comparingDouble(vec3d -> vec3d.y));
         this.lastHotbarSlot = this.mc.player.inventory.currentItem;
-        final int obbySlot = ItemUtil.getItemFromHotbar(Item.getItemFromBlock(Blocks.OBSIDIAN));
+        int obbySlot = ItemUtil.getItemFromHotbar(Item.getItemFromBlock((Block)Blocks.OBSIDIAN));
         this.mc.getConnection().sendPacket((Packet)new CPacketHeldItemChange(obbySlot));
-        for (int size = list.size(), i = 0; i < size; ++i) {
-            final Vec3d vec3d3 = list.get(i);
-            final BlockPos position = new BlockPos(vec3d3);
-            final int placeability = BlockUtil.isPositionPlaceable(position, true);
-            if (this.retry.getValue() && placeability == 1 && (this.retries.get(position) == null || this.retries.get(position) < this.retryer.getValue())) {
+        int size = list.size();
+        for (int i = 0; i < size; ++i) {
+            Vec3d vec3d3 = list.get(i);
+            BlockPos position = new BlockPos(vec3d3);
+            int placeability = BlockUtil.isPositionPlaceable(position, true);
+            if (this.retry.getValue().booleanValue() && placeability == 1 && (this.retries.get(position) == null || this.retries.get(position) < this.retryer.getValue())) {
                 this.placeBlock(position);
-                this.retries.put(position, (this.retries.get(position) == null) ? 1 : (this.retries.get(position) + 1));
+                this.retries.put(position, this.retries.get(position) == null ? 1 : this.retries.get(position) + 1);
                 this.retryTimer.reset();
+                continue;
             }
-            else if (placeability == 3) {
-                this.placeBlock(position);
-            }
+            if (placeability != 3) continue;
+            this.placeBlock(position);
         }
         this.mc.getConnection().sendPacket((Packet)new CPacketHeldItemChange(this.lastHotbarSlot));
     }
-    
+
     private boolean check() {
         if (this.isNull()) {
             return true;
         }
         this.didPlace = false;
         this.placements = 0;
-        AutoTrap.placing = false;
-        final int obbySlot = ItemUtil.getItemFromHotbar(Item.getItemFromBlock(Blocks.OBSIDIAN));
+        placing = false;
+        int obbySlot = ItemUtil.getItemFromHotbar(Item.getItemFromBlock((Block)Blocks.OBSIDIAN));
         if (!this.isEnabled()) {
             return true;
         }
@@ -162,42 +155,41 @@ public final class AutoTrap extends Module
         }
         this.lastHotbarSlot = this.mc.player.inventory.currentItem;
         this.target = this.getTarget(this.targetRange.getValue());
-        return this.target == null || !this.timer.hasReached(this.delay.getValue());
+        return this.target == null || !this.timer.hasReached(this.delay.getValue().intValue());
     }
-    
-    private EntityPlayer getTarget(final double range) {
+
+    private EntityPlayer getTarget(double range) {
         EntityPlayer target = null;
         double distance = Math.pow(range, 2.0) + 1.0;
-        for (int size = this.mc.world.playerEntities.size(), i = 0; i < size; ++i) {
-            final EntityPlayer player = this.mc.world.playerEntities.get(i);
-            if (!EntityUtil.isntValid(player, range)) {
-                if (!BlockUtil.getRoundedBlockPos((Entity)this.mc.player).equals((Object)BlockUtil.getRoundedBlockPos((Entity)player)) || !this.antiSelf.getValue()) {
-                    if (target == null) {
-                        target = player;
-                        distance = this.mc.player.getDistanceSq((Entity)player);
-                    }
-                    else if (this.mc.player.getDistanceSq((Entity)player) < distance) {
-                        target = player;
-                        distance = this.mc.player.getDistanceSq((Entity)player);
-                    }
-                }
+        int size = this.mc.world.playerEntities.size();
+        for (int i = 0; i < size; ++i) {
+            EntityPlayer player = (EntityPlayer)this.mc.world.playerEntities.get(i);
+            if (EntityUtil.isntValid(player, range) || BlockUtil.getRoundedBlockPos((Entity)this.mc.player).equals((Object)BlockUtil.getRoundedBlockPos((Entity)player)) && this.antiSelf.getValue().booleanValue()) continue;
+            if (target == null) {
+                target = player;
+                distance = this.mc.player.getDistanceSq((Entity)player);
+                continue;
             }
+            if (!(this.mc.player.getDistanceSq((Entity)player) < distance)) continue;
+            target = player;
+            distance = this.mc.player.getDistanceSq((Entity)player);
         }
         return target;
     }
-    
-    private void placeBlock(final BlockPos pos) {
+
+    private void placeBlock(BlockPos pos) {
         if (this.placements < this.blocksPerPlace.getValue() && this.mc.player.getDistanceSq(pos) <= this.range.getValue() * this.range.getValue()) {
-            AutoTrap.placing = true;
+            placing = true;
             BlockUtil.placeBlock(pos);
             this.didPlace = true;
             ++this.placements;
         }
     }
-    
-    public enum Type
-    {
-        PRESERVE, 
+
+    public static enum Type {
+        PRESERVE,
         NORMAL;
+
     }
 }
+

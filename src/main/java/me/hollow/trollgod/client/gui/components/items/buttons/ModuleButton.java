@@ -1,32 +1,45 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.gui.components.items.buttons;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.client.gui.components.items.*;
-import me.hollow.trollgod.api.property.*;
-import java.util.*;
-import me.hollow.trollgod.api.util.render.*;
-import me.hollow.trollgod.*;
-import me.hollow.trollgod.client.gui.*;
-import net.minecraft.init.*;
-import net.minecraft.client.audio.*;
+import java.util.ArrayList;
+import java.util.List;
+import me.hollow.trollgod.TrollGod;
+import me.hollow.trollgod.api.property.Bind;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.api.util.render.RenderUtil;
+import me.hollow.trollgod.client.gui.TrollGui;
+import me.hollow.trollgod.client.gui.components.items.Item;
+import me.hollow.trollgod.client.gui.components.items.buttons.BindButton;
+import me.hollow.trollgod.client.gui.components.items.buttons.BooleanButton;
+import me.hollow.trollgod.client.gui.components.items.buttons.Button;
+import me.hollow.trollgod.client.gui.components.items.buttons.EnumButton;
+import me.hollow.trollgod.client.gui.components.items.buttons.Slider;
+import me.hollow.trollgod.client.gui.components.items.buttons.StringButton;
+import me.hollow.trollgod.client.gui.components.items.buttons.UnlimitedSlider;
+import me.hollow.trollgod.client.modules.Module;
+import net.minecraft.client.audio.ISound;
+import net.minecraft.client.audio.PositionedSoundRecord;
+import net.minecraft.init.SoundEvents;
+import net.minecraft.util.SoundEvent;
 
-public class ModuleButton extends Button
-{
+public class ModuleButton
+extends Button {
     private final Module module;
-    private List<Item> items;
+    private List<Item> items = new ArrayList<Item>();
     private boolean subOpen;
-    
-    public ModuleButton(final Module module) {
+
+    public ModuleButton(Module module) {
         super(module.getLabel());
-        this.items = new ArrayList<Item>();
         this.module = module;
         this.initSettings();
     }
-    
+
     public void initSettings() {
-        final List<Item> newItems = new ArrayList<Item>();
+        ArrayList<Item> newItems = new ArrayList<Item>();
         if (!this.module.getSettings().isEmpty()) {
-            for (final Setting setting : this.module.getSettings()) {
+            for (Setting setting : this.module.getSettings()) {
                 if (setting.getValue() instanceof Boolean && !setting.getName().equals("Enabled")) {
                     newItems.add(new BooleanButton(setting));
                 }
@@ -43,24 +56,22 @@ public class ModuleButton extends Button
                     }
                     newItems.add(new UnlimitedSlider(setting));
                 }
-                if (setting.isEnumSetting()) {
-                    newItems.add(new EnumButton(setting));
-                }
+                if (!setting.isEnumSetting()) continue;
+                newItems.add(new EnumButton(setting));
             }
         }
         this.items = newItems;
     }
-    
+
     @Override
-    public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
-        RenderUtil.drawRect(this.x, this.y, this.x + this.width, this.y + this.height - 0.5f, this.getColor(this.isHovering(mouseX, mouseY)));
-        TrollGod.fontManager.drawString(this.getName(), this.x + 2.0f, this.y - 2.0f - TrollGui.getClickGui().getTextOffset(), this.module.isEnabled() ? this.getColor() : -1);
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        RenderUtil.drawRect(this.x, this.y, this.x + (float)this.width, this.y + (float)this.height - 0.5f, this.getColor(this.isHovering(mouseX, mouseY)));
+        TrollGod.fontManager.drawString(this.getName(), this.x + 2.0f, this.y - 2.0f - (float)TrollGui.getClickGui().getTextOffset(), this.module.isEnabled() ? this.getColor() : -1);
         if (!this.items.isEmpty() && this.subOpen) {
             float height = 1.0f;
-            for (final Item item : this.items) {
+            for (Item item : this.items) {
                 if (!item.isHidden()) {
-                    height += 15.0f;
-                    item.setLocation(this.x + 1.0f, this.y + height);
+                    item.setLocation(this.x + 1.0f, this.y + (height += 15.0f));
                     item.setHeight(15);
                     item.setWidth(this.width - 9);
                     item.drawScreen(mouseX, mouseY, partialTicks);
@@ -69,62 +80,60 @@ public class ModuleButton extends Button
             }
         }
     }
-    
+
     @Override
-    public void mouseClicked(final int mouseX, final int mouseY, final int mouseButton) {
+    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         super.mouseClicked(mouseX, mouseY, mouseButton);
         if (!this.items.isEmpty()) {
             if (mouseButton == 1 && this.isHovering(mouseX, mouseY)) {
                 this.subOpen = !this.subOpen;
-                ModuleButton.mc.getSoundHandler().playSound((ISound)PositionedSoundRecord.getMasterRecord(SoundEvents.BLOCK_ANVIL_FALL, 10.0f));
+                mc.getSoundHandler().playSound((ISound)PositionedSoundRecord.getMasterRecord((SoundEvent)SoundEvents.BLOCK_ANVIL_FALL, (float)10.0f));
             }
             if (this.subOpen) {
-                for (final Item item : this.items) {
-                    if (!item.isHidden()) {
-                        item.mouseClicked(mouseX, mouseY, mouseButton);
-                    }
+                for (Item item : this.items) {
+                    if (item.isHidden()) continue;
+                    item.mouseClicked(mouseX, mouseY, mouseButton);
                 }
             }
         }
     }
-    
+
     @Override
-    public void onKeyTyped(final char typedChar, final int keyCode) {
+    public void onKeyTyped(char typedChar, int keyCode) {
         super.onKeyTyped(typedChar, keyCode);
         if (!this.items.isEmpty() && this.subOpen) {
-            for (final Item item : this.items) {
-                if (!item.isHidden()) {
-                    item.onKeyTyped(typedChar, keyCode);
-                }
+            for (Item item : this.items) {
+                if (item.isHidden()) continue;
+                item.onKeyTyped(typedChar, keyCode);
             }
         }
     }
-    
+
     @Override
     public int getHeight() {
         if (this.subOpen) {
             int height = 14;
-            for (final Item item : this.items) {
-                if (!item.isHidden()) {
-                    height += item.getHeight() + 1;
-                }
+            for (Item item : this.items) {
+                if (item.isHidden()) continue;
+                height += item.getHeight() + 1;
             }
             return height + 2;
         }
         return 14;
     }
-    
+
     public Module getModule() {
         return this.module;
     }
-    
+
     @Override
     public void toggle() {
         this.module.toggle();
     }
-    
+
     @Override
     public boolean getState() {
         return this.module.isEnabled();
     }
 }
+

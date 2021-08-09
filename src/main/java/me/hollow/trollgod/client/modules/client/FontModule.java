@@ -1,33 +1,34 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.client;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.api.property.*;
-import me.hollow.trollgod.*;
-import me.hollow.trollgod.client.events.*;
-import tcb.bces.listener.*;
+import me.hollow.trollgod.TrollGod;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.client.events.ClientEvent;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
+import tcb.bces.listener.Subscribe;
 
-@ModuleManifest(label = "Font", category = Category.CLIENT)
-public class FontModule extends Module
-{
-    public final Setting<String> font;
-    public final Setting<Integer> size;
-    public final Setting<Boolean> antiAlias;
-    public static FontModule INSTANCE;
-    
+@ModuleManifest(label="Font", category=Module.Category.CLIENT)
+public class FontModule
+extends Module {
+    public final Setting<String> font = this.register(new Setting<String>("Font", "Verdana"));
+    public final Setting<Integer> size = this.register(new Setting<Integer>("Size", 18, 12, 24));
+    public final Setting<Boolean> antiAlias = this.register(new Setting<Boolean>("Anti Alias", true));
+    public static FontModule INSTANCE = new FontModule();
+
     public FontModule() {
-        this.font = (Setting<String>)this.register(new Setting("Font", (T)"Verdana"));
-        this.size = (Setting<Integer>)this.register(new Setting("Size", (T)18, (T)12, (T)24));
-        this.antiAlias = (Setting<Boolean>)this.register(new Setting("Anti Alias", (T)true));
-        FontModule.INSTANCE = this;
+        INSTANCE = this;
     }
-    
+
     @Override
     public void onLoad() {
         TrollGod.fontManager.updateFont();
     }
-    
+
     @Subscribe
-    public void onSetting(final ClientEvent event) {
+    public void onSetting(ClientEvent event) {
         if (this.mc.player == null || this.mc.world == null) {
             return;
         }
@@ -35,18 +36,15 @@ public class FontModule extends Module
             TrollGod.fontManager.updateFont();
         }
     }
-    
+
     @Override
     public void onEnable() {
         TrollGod.fontManager.customFont = true;
     }
-    
+
     @Override
     public void onDisable() {
         TrollGod.fontManager.customFont = false;
     }
-    
-    static {
-        FontModule.INSTANCE = new FontModule();
-    }
 }
+

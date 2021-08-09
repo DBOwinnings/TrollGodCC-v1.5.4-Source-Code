@@ -1,31 +1,42 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.combat;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.api.property.*;
-import net.minecraft.util.math.*;
-import net.minecraft.init.*;
-import net.minecraft.entity.*;
-import net.minecraft.block.*;
-import java.util.*;
-import net.minecraft.network.play.client.*;
-import net.minecraft.network.*;
-import me.hollow.trollgod.api.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.api.util.BlockUtil;
+import me.hollow.trollgod.api.util.ItemUtil;
+import me.hollow.trollgod.api.util.Timer;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
+import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
+import net.minecraft.init.Blocks;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.client.CPacketHeldItemChange;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 
-@ModuleManifest(label = "AutoFeetPlace", listen = false, category = Category.COMBAT, color = -5602)
-public class AutoFeetPlace extends Module
-{
-    private final Setting<Integer> delay;
-    private final Setting<Integer> blocksPerTick;
-    private final Setting<Boolean> raytrace;
-    private final Setting<Boolean> helpingBlocks;
-    private final Setting<Boolean> intelligent;
-    private final Setting<Boolean> antiPedo;
-    private final Setting<Boolean> echests;
-    private final Setting<Integer> retryer;
-    private final Setting<Integer> extensions;
-    private final Timer timer;
-    private final Timer retryTimer;
-    private boolean didPlace;
+@ModuleManifest(label="AutoFeetPlace", listen=false, category=Module.Category.COMBAT, color=-5602)
+public class AutoFeetPlace
+extends Module {
+    private final Setting<Integer> delay = this.register(new Setting<Integer>("Delay/Place", 50, 0, 250));
+    private final Setting<Integer> blocksPerTick = this.register(new Setting<Integer>("Block/Place", 8, 1, 20));
+    private final Setting<Boolean> raytrace = this.register(new Setting<Boolean>("Raytrace", false));
+    private final Setting<Boolean> helpingBlocks = this.register(new Setting<Boolean>("HelpingBlocks", true));
+    private final Setting<Boolean> intelligent = this.register(new Setting<Object>("Intelligent", false, v -> this.helpingBlocks.getValue()));
+    private final Setting<Boolean> antiPedo = this.register(new Setting<Boolean>("Always Help", false));
+    private final Setting<Boolean> echests = this.register(new Setting<Boolean>("E-Chests", false));
+    private final Setting<Integer> retryer = this.register(new Setting<Integer>("Retries", 4, 0, 15));
+    private final Setting<Integer> extensions = this.register(new Setting<Integer>("Extensions", 1, 0, 3));
+    private final Timer timer = new Timer();
+    private final Timer retryTimer = new Timer();
+    private boolean didPlace = false;
     public static AutoFeetPlace INSTANCE;
     private int placements;
     public static boolean isPlacing;
@@ -34,26 +45,14 @@ public class AutoFeetPlace extends Module
     private final Map<BlockPos, Integer> retries;
     private final Set<Vec3d> extendingBlocks;
     private double enabledPos;
-    
+
     public AutoFeetPlace() {
-        this.delay = (Setting<Integer>)this.register(new Setting("Delay/Place", (T)50, (T)0, (T)250));
-        this.blocksPerTick = (Setting<Integer>)this.register(new Setting("Block/Place", (T)8, (T)1, (T)20));
-        this.raytrace = (Setting<Boolean>)this.register(new Setting("Raytrace", (T)false));
-        this.helpingBlocks = (Setting<Boolean>)this.register(new Setting("HelpingBlocks", (T)true));
-        this.intelligent = (Setting<Boolean>)this.register(new Setting("Intelligent", (T)false, v -> this.helpingBlocks.getValue()));
-        this.antiPedo = (Setting<Boolean>)this.register(new Setting("Always Help", (T)false));
-        this.echests = (Setting<Boolean>)this.register(new Setting("E-Chests", (T)false));
-        this.retryer = (Setting<Integer>)this.register(new Setting("Retries", (T)4, (T)0, (T)15));
-        this.extensions = (Setting<Integer>)this.register(new Setting("Extensions", (T)1, (T)0, (T)3));
-        this.timer = new Timer();
-        this.retryTimer = new Timer();
-        this.didPlace = false;
-        AutoFeetPlace.INSTANCE = this;
+        INSTANCE = this;
         this.obbySlot = -1;
         this.retries = new HashMap<BlockPos, Integer>();
         this.extendingBlocks = new HashSet<Vec3d>();
     }
-    
+
     @Override
     public void onEnable() {
         if (this.isNull()) {
@@ -64,17 +63,16 @@ public class AutoFeetPlace extends Module
         this.retries.clear();
         this.retryTimer.reset();
     }
-    
+
     public void doPlace() {
         if (this.check()) {
             return;
         }
-        final Block playerBlock = this.mc.world.getBlockState(new BlockPos(this.mc.player.getPositionVector())).getBlock();
-        final boolean offset = playerBlock == Blocks.ENDER_CHEST && this.mc.player.posY - (int)this.mc.player.posY > 0.5;
+        Block playerBlock = this.mc.world.getBlockState(new BlockPos(this.mc.player.getPositionVector())).getBlock();
+        boolean offset = playerBlock == Blocks.ENDER_CHEST && this.mc.player.posY - (double)((int)this.mc.player.posY) > 0.5;
         if (!BlockUtil.isSafe((Entity)this.mc.player, offset ? 1 : 0)) {
-            this.placeBlocks(this.mc.player.getPositionVector(), BlockUtil.getUnsafeBlockArray((Entity)this.mc.player, (int)(offset ? 1 : 0)), this.helpingBlocks.getValue(), false, false);
-        }
-        else if (!BlockUtil.isSafe((Entity)this.mc.player, offset ? 0 : -1) && this.antiPedo.getValue()) {
+            this.placeBlocks(this.mc.player.getPositionVector(), BlockUtil.getUnsafeBlockArray((Entity)this.mc.player, offset ? 1 : 0), this.helpingBlocks.getValue(), false, false);
+        } else if (!BlockUtil.isSafe((Entity)this.mc.player, offset ? 0 : -1) && this.antiPedo.getValue().booleanValue()) {
             this.placeBlocks(this.mc.player.getPositionVector(), BlockUtil.getUnsafeBlockArray((Entity)this.mc.player, offset ? 0 : -1), false, false, false);
         }
         this.processExtendingBlocks();
@@ -82,35 +80,35 @@ public class AutoFeetPlace extends Module
             this.timer.reset();
         }
     }
-    
+
     private void processExtendingBlocks() {
         if (this.extendingBlocks.size() == 2 && this.extenders < this.extensions.getValue()) {
-            final Vec3d[] array = new Vec3d[2];
+            Vec3d[] array = new Vec3d[2];
             int i = 0;
-            for (final Vec3d vec3d : this.extendingBlocks) {
-                array[i] = vec3d;
+            Iterator<Vec3d> iterator = this.extendingBlocks.iterator();
+            while (iterator.hasNext()) {
+                Vec3d vec3d;
+                array[i] = vec3d = iterator.next();
                 ++i;
             }
-            final int placementsBefore = this.placements;
+            int placementsBefore = this.placements;
             if (this.areClose(array) != null) {
                 this.placeBlocks(this.areClose(array), BlockUtil.getUnsafeBlockArrayFromVec3d(this.areClose(array), 0), this.helpingBlocks.getValue(), false, true);
             }
             if (placementsBefore < this.placements) {
                 this.extendingBlocks.clear();
             }
-        }
-        else if (this.extendingBlocks.size() > 2 || this.extenders >= this.extensions.getValue()) {
+        } else if (this.extendingBlocks.size() > 2 || this.extenders >= this.extensions.getValue()) {
             this.extendingBlocks.clear();
         }
     }
-    
-    private Vec3d areClose(final Vec3d[] vec3ds) {
+
+    private Vec3d areClose(Vec3d[] vec3ds) {
         int matches = 0;
-        for (final Vec3d vec3d : vec3ds) {
-            for (final Vec3d pos : BlockUtil.getUnsafeBlockArray((Entity)this.mc.player, 0)) {
-                if (vec3d.equals((Object)pos)) {
-                    ++matches;
-                }
+        for (Vec3d vec3d : vec3ds) {
+            for (Vec3d pos : BlockUtil.getUnsafeBlockArray((Entity)this.mc.player, 0)) {
+                if (!vec3d.equals((Object)pos)) continue;
+                ++matches;
             }
         }
         if (matches == 2) {
@@ -118,56 +116,49 @@ public class AutoFeetPlace extends Module
         }
         return null;
     }
-    
-    private boolean placeBlocks(final Vec3d pos, final Vec3d[] vec3ds, final boolean hasHelpingBlocks, final boolean isHelping, final boolean isExtending) {
+
+    private boolean placeBlocks(Vec3d pos, Vec3d[] vec3ds, boolean hasHelpingBlocks, boolean isHelping, boolean isExtending) {
         int helpings = 0;
         boolean gotHelp = true;
         if (this.obbySlot == -1) {
             return false;
         }
-        final int lastSlot = this.mc.player.inventory.currentItem;
+        int lastSlot = this.mc.player.inventory.currentItem;
         this.mc.player.inventory.currentItem = this.obbySlot;
         this.mc.getConnection().sendPacket((Packet)new CPacketHeldItemChange(this.obbySlot));
-        for (final Vec3d vec3d : vec3ds) {
+        block6: for (Vec3d vec3d : vec3ds) {
             gotHelp = true;
-            ++helpings;
-            if (isHelping && !this.intelligent.getValue() && helpings > 1) {
+            if (isHelping && !this.intelligent.getValue().booleanValue() && ++helpings > 1) {
                 return false;
             }
-            final BlockPos position = new BlockPos(pos).add(vec3d.x, vec3d.y, vec3d.z);
-            Label_0425: {
-                switch (BlockUtil.isPositionPlaceable(position, true)) {
-                    case 1: {
-                        if (this.retries.get(position) == null || this.retries.get(position) < this.retryer.getValue()) {
-                            this.placeBlock(position);
-                            this.retries.put(position, (this.retries.get(position) == null) ? 1 : (this.retries.get(position) + 1));
-                            this.retryTimer.reset();
-                            break;
-                        }
-                        if (!isExtending && this.extenders < this.extensions.getValue()) {
-                            this.placeBlocks(this.mc.player.getPositionVector().add(vec3d), BlockUtil.getUnsafeBlockArrayFromVec3d(this.mc.player.getPositionVector().add(vec3d), 0), hasHelpingBlocks, false, true);
-                            this.extendingBlocks.add(vec3d);
-                            ++this.extenders;
-                            break;
-                        }
-                        break;
+            BlockPos position = new BlockPos(pos).add(vec3d.x, vec3d.y, vec3d.z);
+            switch (BlockUtil.isPositionPlaceable(position, true)) {
+                case -1: {
+                    continue block6;
+                }
+                case 1: {
+                    if (this.retries.get(position) == null || this.retries.get(position) < this.retryer.getValue()) {
+                        this.placeBlock(position);
+                        this.retries.put(position, this.retries.get(position) == null ? 1 : this.retries.get(position) + 1);
+                        this.retryTimer.reset();
+                        continue block6;
                     }
-                    case 2: {
-                        if (hasHelpingBlocks) {
-                            gotHelp = this.placeBlocks(pos, BlockUtil.getHelpingBlocks(vec3d), false, true, true);
-                            break Label_0425;
-                        }
-                        break;
+                    if (isExtending || this.extenders >= this.extensions.getValue()) continue block6;
+                    this.placeBlocks(this.mc.player.getPositionVector().add(vec3d), BlockUtil.getUnsafeBlockArrayFromVec3d(this.mc.player.getPositionVector().add(vec3d), 0), hasHelpingBlocks, false, true);
+                    this.extendingBlocks.add(vec3d);
+                    ++this.extenders;
+                    continue block6;
+                }
+                case 2: {
+                    if (!hasHelpingBlocks) continue block6;
+                    gotHelp = this.placeBlocks(pos, BlockUtil.getHelpingBlocks(vec3d), false, true, true);
+                }
+                case 3: {
+                    if (gotHelp) {
+                        this.placeBlock(position);
                     }
-                    case 3: {
-                        if (gotHelp) {
-                            this.placeBlock(position);
-                        }
-                        if (isHelping) {
-                            return true;
-                        }
-                        break;
-                    }
+                    if (!isHelping) continue block6;
+                    return true;
                 }
             }
         }
@@ -175,7 +166,7 @@ public class AutoFeetPlace extends Module
         this.mc.getConnection().sendPacket((Packet)new CPacketHeldItemChange(lastSlot));
         return false;
     }
-    
+
     private boolean check() {
         if (this.isNull()) {
             this.disable();
@@ -185,11 +176,11 @@ public class AutoFeetPlace extends Module
             this.disable();
             return true;
         }
-        AutoFeetPlace.isPlacing = false;
+        isPlacing = false;
         this.didPlace = false;
         this.placements = 0;
         this.obbySlot = ItemUtil.getBlockFromHotbar(Blocks.OBSIDIAN);
-        final int echestSlot = ItemUtil.getBlockFromHotbar(Blocks.ENDER_CHEST);
+        int echestSlot = ItemUtil.getBlockFromHotbar(Blocks.ENDER_CHEST);
         if (!this.isEnabled()) {
             return true;
         }
@@ -197,31 +188,32 @@ public class AutoFeetPlace extends Module
             this.retries.clear();
             this.retryTimer.reset();
         }
-        if (this.obbySlot == -1 && (!this.echests.getValue() || echestSlot == -1)) {
+        if (!(this.obbySlot != -1 || this.echests.getValue().booleanValue() && echestSlot != -1)) {
             this.disable();
             return true;
         }
-        return !this.timer.hasReached(this.delay.getValue());
+        return !this.timer.hasReached(this.delay.getValue().intValue());
     }
-    
-    private void placeBlock(final BlockPos pos) {
+
+    private void placeBlock(BlockPos pos) {
         if (this.placements < this.blocksPerTick.getValue()) {
-            AutoFeetPlace.isPlacing = true;
+            isPlacing = true;
             BlockUtil.placeBlock(pos);
             this.didPlace = true;
             ++this.placements;
         }
     }
-    
+
     static {
-        AutoFeetPlace.isPlacing = false;
+        isPlacing = false;
     }
-    
-    public enum MovementMode
-    {
-        NONE, 
-        STATIC, 
-        LIMIT, 
+
+    public static enum MovementMode {
+        NONE,
+        STATIC,
+        LIMIT,
         OFF;
+
     }
 }
+

@@ -26,8 +26,8 @@ public class Module implements IListener
     public Module() {
         this.mc = Minecraft.getMinecraft();
         this.settings = new ArrayList<Setting>();
-        this.drawn = (Setting<Boolean>)this.register(new Setting("Drawn", (T)true));
-        this.bind = (Setting<Bind>)this.register(new Setting("Bind", (T)new Bind(-10000)));
+        this.drawn = (Setting<Boolean>)this.register(new Setting("Drawn", true));
+        this.bind = (Setting<Bind>)this.register(new Setting("Bind", new Bind(-10000)));
         this.suffix = "";
         if (this.getClass().isAnnotationPresent(ModuleManifest.class)) {
             final ModuleManifest moduleManifest = this.getClass().getAnnotation(ModuleManifest.class);
@@ -71,11 +71,11 @@ public class Module implements IListener
         this.onToggle();
         if (enabled) {
             this.onEnable();
-            MessageUtil.sendClientMessage(ChatFormatting.DARK_AQUA + this.getLabel() + "§d was §2enabled", -44444);
+            MessageUtil.sendClientMessage(ChatFormatting.DARK_AQUA + this.getLabel() + "ï¿½d was ï¿½2enabled", -44444);
         }
         else {
             this.onDisable();
-            MessageUtil.sendClientMessage(ChatFormatting.DARK_AQUA + this.getLabel() + "§d was §4disabled", -44444);
+            MessageUtil.sendClientMessage(ChatFormatting.DARK_AQUA + this.getLabel() + "ï¿½d was ï¿½4disabled", -44444);
         }
     }
     
@@ -156,7 +156,7 @@ public class Module implements IListener
         if (this.suffix.length() == 0) {
             return "";
         }
-        return " §8[§f" + this.suffix + "§8]";
+        return " ï¿½8[ï¿½f" + this.suffix + "ï¿½8]";
     }
     
     @Override

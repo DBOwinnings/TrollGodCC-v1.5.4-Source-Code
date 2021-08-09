@@ -1,19 +1,25 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.gui.components;
 
-import me.hollow.trollgod.api.interfaces.*;
-import me.hollow.trollgod.client.gui.components.items.*;
-import me.hollow.trollgod.client.modules.client.*;
-import java.awt.*;
-import me.hollow.trollgod.api.util.render.*;
-import me.hollow.trollgod.*;
-import me.hollow.trollgod.client.gui.*;
-import net.minecraft.init.*;
-import net.minecraft.client.audio.*;
-import java.util.*;
-import me.hollow.trollgod.client.gui.components.items.buttons.*;
+import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
+import me.hollow.trollgod.TrollGod;
+import me.hollow.trollgod.api.interfaces.Minecraftable;
+import me.hollow.trollgod.api.util.render.RenderUtil;
+import me.hollow.trollgod.client.gui.TrollGui;
+import me.hollow.trollgod.client.gui.components.items.Item;
+import me.hollow.trollgod.client.gui.components.items.buttons.Button;
+import me.hollow.trollgod.client.modules.client.ClickGui;
+import net.minecraft.client.audio.ISound;
+import net.minecraft.client.audio.PositionedSoundRecord;
+import net.minecraft.init.SoundEvents;
+import net.minecraft.util.SoundEvent;
 
-public class Component implements Minecraftable
-{
+public class Component
+implements Minecraftable {
     private int x;
     private int y;
     private int x2;
@@ -22,13 +28,11 @@ public class Component implements Minecraftable
     private int height;
     private boolean open;
     public boolean drag;
-    private final List<Item> items;
-    private boolean hidden;
+    private final List<Item> items = new ArrayList<Item>();
+    private boolean hidden = false;
     private final String name;
-    
-    public Component(final String name, final int x, final int y, final boolean open) {
-        this.items = new ArrayList<Item>();
-        this.hidden = false;
+
+    public Component(String name, int x, int y, boolean open) {
         this.name = name;
         this.x = x;
         this.y = y;
@@ -37,151 +41,150 @@ public class Component implements Minecraftable
         this.open = open;
         this.setupItems();
     }
-    
+
     public final String getName() {
         return this.name;
     }
-    
+
     public void setupItems() {
     }
-    
-    private void drag(final int mouseX, final int mouseY) {
+
+    private void drag(int mouseX, int mouseY) {
         if (!this.drag) {
             return;
         }
         this.x = this.x2 + mouseX;
         this.y = this.y2 + mouseY;
     }
-    
-    public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
+
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drag(mouseX, mouseY);
-        final float totalItemHeight = this.open ? (this.getTotalItemHeight() - 2.0f) : 0.0f;
-        RenderUtil.drawRect((float)(this.x - 4), (float)(this.y - 2), (float)(this.x + this.width + 4), (float)(this.y + this.height - 6), new Color(ClickGui.getInstance().categoryRed.getValue(), ClickGui.getInstance().categoryGreen.getValue(), ClickGui.getInstance().categoryBlue.getValue(), ClickGui.getInstance().categoryAlpha.getValue()).getRGB());
+        float totalItemHeight = this.open ? this.getTotalItemHeight() - 2.0f : 0.0f;
+        RenderUtil.drawRect(this.x - 4, this.y - 2, this.x + this.width + 4, this.y + this.height - 6, new Color(ClickGui.getInstance().categoryRed.getValue(), ClickGui.getInstance().categoryGreen.getValue(), ClickGui.getInstance().categoryBlue.getValue(), ClickGui.getInstance().categoryAlpha.getValue()).getRGB());
         if (this.open) {
-            RenderUtil.drawRect((float)this.x, this.y + 12.0f, (float)(this.x + this.width), this.y + this.height + totalItemHeight, new Color(0, 0, 0, ClickGui.getInstance().alpha.getValue()).getRGB());
+            RenderUtil.drawRect(this.x, (float)this.y + 12.0f, this.x + this.width, (float)(this.y + this.height) + totalItemHeight, new Color(0, 0, 0, ClickGui.getInstance().alpha.getValue()).getRGB());
         }
-        TrollGod.fontManager.drawString(this.getName(), this.x + this.width / 2.0f - TrollGod.fontManager.getStringWidth(this.getName()) / 2, this.y - 4.0f - TrollGui.getClickGui().getTextOffset(), 16777215);
+        TrollGod.fontManager.drawString(this.getName(), (float)this.x + (float)this.width / 2.0f - (float)(TrollGod.fontManager.getStringWidth(this.getName()) / 2), (float)this.y - 4.0f - (float)TrollGui.getClickGui().getTextOffset(), 0xFFFFFF);
         if (this.open) {
-            float y = this.getY() + this.getHeight() - 3.0f;
+            float y = (float)(this.getY() + this.getHeight()) - 3.0f;
             for (int i = 0; i < this.getItems().size(); ++i) {
-                final Item item = this.getItems().get(i);
-                if (!item.isHidden()) {
-                    item.setLocation(this.x + 2.0f, y);
-                    item.setWidth(this.getWidth() - 4);
-                    item.drawScreen(mouseX, mouseY, partialTicks);
-                    y += item.getHeight() + 1.0f;
-                }
+                Item item = this.getItems().get(i);
+                if (item.isHidden()) continue;
+                item.setLocation((float)this.x + 2.0f, y);
+                item.setWidth(this.getWidth() - 4);
+                item.drawScreen(mouseX, mouseY, partialTicks);
+                y += (float)item.getHeight() + 1.0f;
             }
         }
     }
-    
-    public void mouseClicked(final int mouseX, final int mouseY, final int mouseButton) {
+
+    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY)) {
             this.x2 = this.x - mouseX;
             this.y2 = this.y - mouseY;
-            for (final Component component : TrollGui.getClickGui().getComponents()) {
-                if (component.drag) {
-                    component.drag = false;
-                }
+            for (Component component : TrollGui.getClickGui().getComponents()) {
+                if (!component.drag) continue;
+                component.drag = false;
             }
             this.drag = true;
             return;
         }
         if (mouseButton == 1 && this.isHovering(mouseX, mouseY)) {
             this.open = !this.open;
-            Component.mc.getSoundHandler().playSound((ISound)PositionedSoundRecord.getMasterRecord(SoundEvents.BLOCK_ANVIL_FALL, 10.0f));
+            mc.getSoundHandler().playSound((ISound)PositionedSoundRecord.getMasterRecord((SoundEvent)SoundEvents.BLOCK_ANVIL_FALL, (float)10.0f));
             return;
         }
         if (!this.open) {
             return;
         }
-        for (final Item item : this.getItems()) {
+        for (Item item : this.getItems()) {
             item.mouseClicked(mouseX, mouseY, mouseButton);
         }
     }
-    
-    public void mouseReleased(final int mouseX, final int mouseY, final int releaseButton) {
+
+    public void mouseReleased(int mouseX, int mouseY, int releaseButton) {
         if (releaseButton == 0) {
             this.drag = false;
         }
         if (!this.open) {
             return;
         }
-        for (final Item item : this.getItems()) {
+        for (Item item : this.getItems()) {
             item.mouseReleased(mouseX, mouseY, releaseButton);
         }
     }
-    
-    public void onKeyTyped(final char typedChar, final int keyCode) {
+
+    public void onKeyTyped(char typedChar, int keyCode) {
         if (!this.open) {
             return;
         }
-        for (final Item item : this.getItems()) {
+        for (Item item : this.getItems()) {
             item.onKeyTyped(typedChar, keyCode);
         }
     }
-    
-    public void addButton(final Button button) {
+
+    public void addButton(Button button) {
         this.items.add(button);
     }
-    
-    public void setX(final int x) {
+
+    public void setX(int x) {
         this.x = x;
     }
-    
-    public void setY(final int y) {
+
+    public void setY(int y) {
         this.y = y;
     }
-    
+
     public int getX() {
         return this.x;
     }
-    
+
     public int getY() {
         return this.y;
     }
-    
+
     public int getWidth() {
         return this.width;
     }
-    
+
     public int getHeight() {
         return this.height;
     }
-    
-    public void setHeight(final int height) {
+
+    public void setHeight(int height) {
         this.height = height;
     }
-    
-    public void setWidth(final int width) {
+
+    public void setWidth(int width) {
         this.width = width;
     }
-    
-    public void setHidden(final boolean hidden) {
+
+    public void setHidden(boolean hidden) {
         this.hidden = hidden;
     }
-    
+
     public boolean isHidden() {
         return this.hidden;
     }
-    
+
     public boolean isOpen() {
         return this.open;
     }
-    
+
     public final List<Item> getItems() {
         return this.items;
     }
-    
-    private boolean isHovering(final int mouseX, final int mouseY) {
+
+    private boolean isHovering(int mouseX, int mouseY) {
         return mouseX >= this.getX() && mouseX <= this.getX() + this.getWidth() && mouseY >= this.getY() && mouseY <= this.getY() + this.getHeight() - (this.open ? 2 : 0);
     }
-    
+
     private float getTotalItemHeight() {
         float height = 0.0f;
-        for (final Item item : this.getItems()) {
-            height += item.getHeight() + 1.5f;
+        for (Item item : this.getItems()) {
+            height += (float)item.getHeight() + 1.5f;
         }
         return height;
     }
 }
+

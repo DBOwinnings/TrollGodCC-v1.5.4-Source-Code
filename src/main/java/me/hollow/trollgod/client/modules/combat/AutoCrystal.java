@@ -1,53 +1,68 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.combat;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.api.property.*;
-import net.minecraft.util.math.*;
-import net.minecraft.entity.player.*;
-import net.minecraft.entity.item.*;
-import net.minecraft.entity.*;
-import net.minecraft.network.*;
-import me.hollow.trollgod.api.util.*;
-import net.minecraft.network.play.client.*;
-import me.hollow.trollgod.client.modules.client.*;
-import java.awt.*;
-import me.hollow.trollgod.api.util.render.*;
-import net.minecraft.client.renderer.*;
-import me.hollow.trollgod.client.events.*;
-import me.hollow.trollgod.api.mixin.mixins.network.*;
-import net.minecraft.network.play.server.*;
-import net.minecraft.util.*;
-import net.minecraft.init.*;
-import java.util.*;
-import tcb.bces.listener.*;
+import java.awt.Color;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import me.hollow.trollgod.api.mixin.mixins.network.AccessorCPacketUseEntity;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.api.util.BlockUtil;
+import me.hollow.trollgod.api.util.CombatUtil;
+import me.hollow.trollgod.api.util.EntityUtil;
+import me.hollow.trollgod.api.util.ItemUtil;
+import me.hollow.trollgod.api.util.render.RenderUtil;
+import me.hollow.trollgod.client.events.PacketEvent;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
+import me.hollow.trollgod.client.modules.client.Colours;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityEnderCrystal;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Items;
+import net.minecraft.init.SoundEvents;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
+import net.minecraft.network.play.client.CPacketUseEntity;
+import net.minecraft.network.play.server.SPacketSoundEffect;
+import net.minecraft.network.play.server.SPacketSpawnObject;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.math.BlockPos;
+import tcb.bces.listener.Subscribe;
 
-@ModuleManifest(label = "AutoCrystal", category = Category.COMBAT, color = 8912896)
-public final class AutoCrystal extends Module
-{
-    private final Setting<Page> page;
-    private final Setting<Float> breakRange;
-    private final Setting<Float> breakWallRange;
-    private final Setting<Boolean> instant;
-    private final Setting<Integer> breakDelay;
-    private final Setting<Boolean> antiWeakness;
-    private final Setting<Boolean> mainhand;
-    private final Setting<Boolean> place;
-    private final Setting<Float> placeRange;
-    private final Setting<Integer> facePlaceHp;
-    private final Setting<Double> minDamage;
-    private final Setting<Integer> maxSelfDamage;
-    private final Setting<Integer> armorScale;
-    private final Setting<Float> range;
-    private final Setting<Boolean> secondCheck;
-    private final Setting<Boolean> autoSwitch;
-    private final Setting<Boolean> updateController;
-    private final Setting<Boolean> sync;
-    private final Setting<Integer> red;
-    private final Setting<Integer> green;
-    private final Setting<Integer> blue;
-    private final Setting<Integer> alpha;
-    private final Setting<Boolean> renderDamage;
-    private final Set<BlockPos> placeSet;
+@ModuleManifest(label="AutoCrystal", category=Module.Category.COMBAT, color=0x880000)
+public final class AutoCrystal
+extends Module {
+    private final Setting<Page> page = this.register(new Setting<Page>("Page", Page.BREAK));
+    private final Setting<Float> breakRange = this.register(new Setting<Float>("Break Range", Float.valueOf(5.0f), Float.valueOf(1.0f), Float.valueOf(6.0f), v -> this.page.getValue() == Page.BREAK));
+    private final Setting<Float> breakWallRange = this.register(new Setting<Float>("Wall Range", Float.valueOf(5.0f), Float.valueOf(1.0f), Float.valueOf(6.0f), v -> this.page.getValue() == Page.BREAK));
+    private final Setting<Boolean> instant = this.register(new Setting<Boolean>("Instant", true, v -> this.page.getValue() == Page.BREAK));
+    private final Setting<Integer> breakDelay = this.register(new Setting<Integer>("Break Delay", 1, 0, 10, v -> this.page.getValue() == Page.BREAK));
+    private final Setting<Boolean> antiWeakness = this.register(new Setting<Boolean>("Anti Weakness", true, v -> this.page.getValue() == Page.BREAK));
+    private final Setting<Boolean> mainhand = this.register(new Setting<Boolean>("Mainhand", true, v -> this.page.getValue() == Page.BREAK));
+    private final Setting<Boolean> place = this.register(new Setting<Boolean>("Place", true, v -> this.page.getValue() == Page.PLACE));
+    private final Setting<Float> placeRange = this.register(new Setting<Float>("Place Range", Float.valueOf(5.0f), Float.valueOf(1.0f), Float.valueOf(6.0f), v -> this.page.getValue() == Page.PLACE && this.place.getValue() != false));
+    private final Setting<Integer> facePlaceHp = this.register(new Setting<Integer>("Faceplace HP", 8, 0, 36, v -> this.page.getValue() == Page.PLACE && this.place.getValue() != false));
+    private final Setting<Double> minDamage = this.register(new Setting<Double>("MinDamage", 4.0, 1.0, 36.0, v -> this.page.getValue() == Page.PLACE && this.place.getValue() != false));
+    private final Setting<Integer> maxSelfDamage = this.register(new Setting<Integer>("Max SelfDamage", 8, 1, 36, v -> this.page.getValue() == Page.PLACE && this.place.getValue() != false));
+    private final Setting<Integer> armorScale = this.register(new Setting<Integer>("Armor Scale", 10, 0, 100, v -> this.page.getValue() == Page.PLACE));
+    private final Setting<Float> range = this.register(new Setting<Float>("Range", Float.valueOf(9.0f), Float.valueOf(1.0f), Float.valueOf(15.0f), v -> this.page.getValue() == Page.PLACE));
+    private final Setting<Boolean> secondCheck = this.register(new Setting<Boolean>("Second Check", true, v -> this.page.getValue() == Page.PLACE));
+    private final Setting<Boolean> autoSwitch = this.register(new Setting<Boolean>("Auto Switch", true, v -> this.page.getValue() == Page.PLACE));
+    private final Setting<Boolean> updateController = this.register(new Setting<Boolean>("Update Controller", true));
+    private final Setting<Boolean> sync = this.register(new Setting<Boolean>("Sync", true, v -> this.page.getValue() == Page.RENDER));
+    private final Setting<Integer> red = this.register(new Setting<Integer>("Red", 255, 0, 255, v -> this.sync.getValue() == false && this.page.getValue() == Page.RENDER));
+    private final Setting<Integer> green = this.register(new Setting<Integer>("Green", 255, 0, 255, v -> this.sync.getValue() == false && this.page.getValue() == Page.RENDER));
+    private final Setting<Integer> blue = this.register(new Setting<Integer>("Blue", 255, 0, 255, v -> this.sync.getValue() == false && this.page.getValue() == Page.RENDER));
+    private final Setting<Integer> alpha = this.register(new Setting<Integer>("Alpha", 40, 0, 255, v -> this.page.getValue() == Page.RENDER));
+    private final Setting<Boolean> renderDamage = this.register(new Setting<Boolean>("Render Damage", true, v -> this.page.getValue() == Page.RENDER));
+    private final Set<BlockPos> placeSet = new HashSet<BlockPos>();
     private EntityPlayer currentTarget;
     private boolean lowArmor;
     private BlockPos renderPos;
@@ -56,41 +71,17 @@ public final class AutoCrystal extends Module
     private int ticks;
     private int breakTicks;
     public static AutoCrystal INSTANCE;
-    
+
     public AutoCrystal() {
-        this.page = (Setting<Page>)this.register(new Setting("Page", (T)Page.BREAK));
-        this.breakRange = (Setting<Float>)this.register(new Setting("Break Range", (T)5.0f, (T)1.0f, (T)6.0f, v -> this.page.getValue() == Page.BREAK));
-        this.breakWallRange = (Setting<Float>)this.register(new Setting("Wall Range", (T)5.0f, (T)1.0f, (T)6.0f, v -> this.page.getValue() == Page.BREAK));
-        this.instant = (Setting<Boolean>)this.register(new Setting("Instant", (T)true, v -> this.page.getValue() == Page.BREAK));
-        this.breakDelay = (Setting<Integer>)this.register(new Setting("Break Delay", (T)1, (T)0, (T)10, v -> this.page.getValue() == Page.BREAK));
-        this.antiWeakness = (Setting<Boolean>)this.register(new Setting("Anti Weakness", (T)true, v -> this.page.getValue() == Page.BREAK));
-        this.mainhand = (Setting<Boolean>)this.register(new Setting("Mainhand", (T)true, v -> this.page.getValue() == Page.BREAK));
-        this.place = (Setting<Boolean>)this.register(new Setting("Place", (T)true, v -> this.page.getValue() == Page.PLACE));
-        this.placeRange = (Setting<Float>)this.register(new Setting("Place Range", (T)5.0f, (T)1.0f, (T)6.0f, v -> this.page.getValue() == Page.PLACE && this.place.getValue()));
-        this.facePlaceHp = (Setting<Integer>)this.register(new Setting("Faceplace HP", (T)8, (T)0, (T)36, v -> this.page.getValue() == Page.PLACE && this.place.getValue()));
-        this.minDamage = (Setting<Double>)this.register(new Setting("MinDamage", (T)4.0, (T)1.0, (T)36.0, v -> this.page.getValue() == Page.PLACE && this.place.getValue()));
-        this.maxSelfDamage = (Setting<Integer>)this.register(new Setting("Max SelfDamage", (T)8, (T)1, (T)36, v -> this.page.getValue() == Page.PLACE && this.place.getValue()));
-        this.armorScale = (Setting<Integer>)this.register(new Setting("Armor Scale", (T)10, (T)0, (T)100, v -> this.page.getValue() == Page.PLACE));
-        this.range = (Setting<Float>)this.register(new Setting("Range", (T)9.0f, (T)1.0f, (T)15.0f, v -> this.page.getValue() == Page.PLACE));
-        this.secondCheck = (Setting<Boolean>)this.register(new Setting("Second Check", (T)true, v -> this.page.getValue() == Page.PLACE));
-        this.autoSwitch = (Setting<Boolean>)this.register(new Setting("Auto Switch", (T)true, v -> this.page.getValue() == Page.PLACE));
-        this.updateController = (Setting<Boolean>)this.register(new Setting("Update Controller", (T)true));
-        this.sync = (Setting<Boolean>)this.register(new Setting("Sync", (T)true, v -> this.page.getValue() == Page.RENDER));
-        this.red = (Setting<Integer>)this.register(new Setting("Red", (T)255, (T)0, (T)255, v -> !this.sync.getValue() && this.page.getValue() == Page.RENDER));
-        this.green = (Setting<Integer>)this.register(new Setting("Green", (T)255, (T)0, (T)255, v -> !this.sync.getValue() && this.page.getValue() == Page.RENDER));
-        this.blue = (Setting<Integer>)this.register(new Setting("Blue", (T)255, (T)0, (T)255, v -> !this.sync.getValue() && this.page.getValue() == Page.RENDER));
-        this.alpha = (Setting<Integer>)this.register(new Setting("Alpha", (T)40, (T)0, (T)255, v -> this.page.getValue() == Page.RENDER));
-        this.renderDamage = (Setting<Boolean>)this.register(new Setting("Render Damage", (T)true, v -> this.page.getValue() == Page.RENDER));
-        this.placeSet = new HashSet<BlockPos>();
-        AutoCrystal.INSTANCE = this;
+        INSTANCE = this;
     }
-    
+
     @Override
     public void onToggle() {
         this.placeSet.clear();
         this.renderPos = null;
     }
-    
+
     public void onTick() {
         if (this.isNull()) {
             return;
@@ -101,8 +92,8 @@ public final class AutoCrystal extends Module
             this.renderPos = null;
             this.clearSuffix();
         }
-        this.offhand = (this.mc.player.getHeldItemOffhand().getItem() == Items.END_CRYSTAL);
-        this.currentTarget = CombatUtil.getTarget(this.range.getValue());
+        this.offhand = this.mc.player.getHeldItemOffhand().getItem() == Items.END_CRYSTAL;
+        this.currentTarget = CombatUtil.getTarget(this.range.getValue().floatValue());
         if (this.currentTarget == null) {
             return;
         }
@@ -110,26 +101,18 @@ public final class AutoCrystal extends Module
         this.doPlace();
         this.doBreak();
     }
-    
+
     private void doBreak() {
         Entity maxCrystal = null;
         double maxDamage = 0.5;
-        for (final Entity crystal : this.mc.world.loadedEntityList) {
-            if (crystal instanceof EntityEnderCrystal && (this.mc.player.canEntityBeSeen(crystal) ? this.breakRange.getValue() : this.breakWallRange.getValue()) > this.mc.player.getDistance(crystal)) {
-                final double targetDamage = EntityUtil.calculate(crystal.posX, crystal.posY, crystal.posZ, (EntityLivingBase)this.currentTarget);
-                if (targetDamage < this.minDamage.getValue() && EntityUtil.getHealth((EntityLivingBase)this.currentTarget) > this.facePlaceHp.getValue() && !this.lowArmor) {
-                    continue;
-                }
-                final double selfDamage = EntityUtil.calculate(crystal.posX, crystal.posY, crystal.posZ, (EntityLivingBase)this.mc.player);
-                if (selfDamage + 2.0 >= EntityUtil.getHealth((EntityLivingBase)this.mc.player) || selfDamage >= targetDamage) {
-                    continue;
-                }
-                if (maxDamage > targetDamage) {
-                    continue;
-                }
-                maxCrystal = crystal;
-                maxDamage = targetDamage;
-            }
+        for (Entity crystal : this.mc.world.loadedEntityList) {
+            double selfDamage;
+            double targetDamage;
+            if (!(crystal instanceof EntityEnderCrystal)) continue;
+            Float f = this.mc.player.canEntityBeSeen(crystal) ? this.breakRange.getValue() : this.breakWallRange.getValue();
+            if (!(f.floatValue() > this.mc.player.getDistance(crystal)) || (targetDamage = (double)EntityUtil.calculate(crystal.posX, crystal.posY, crystal.posZ, (EntityLivingBase)this.currentTarget)) < this.minDamage.getValue() && EntityUtil.getHealth((EntityLivingBase)this.currentTarget) > (float)this.facePlaceHp.getValue().intValue() && !this.lowArmor || (selfDamage = (double)EntityUtil.calculate(crystal.posX, crystal.posY, crystal.posZ, (EntityLivingBase)this.mc.player)) + 2.0 >= (double)EntityUtil.getHealth((EntityLivingBase)this.mc.player) || selfDamage >= targetDamage || maxDamage > targetDamage) continue;
+            maxCrystal = crystal;
+            maxDamage = targetDamage;
         }
         if (this.breakTicks++ < this.breakDelay.getValue()) {
             return;
@@ -137,106 +120,92 @@ public final class AutoCrystal extends Module
         if (maxCrystal != null) {
             this.breakTicks = 0;
             this.mc.getConnection().sendPacket((Packet)new CPacketUseEntity(maxCrystal));
-            if (this.updateController.getValue()) {
+            if (this.updateController.getValue().booleanValue()) {
                 this.mc.playerController.updateController();
             }
-            this.mc.player.swingArm(((boolean)this.mainhand.getValue()) ? EnumHand.MAIN_HAND : EnumHand.OFF_HAND);
+            this.mc.player.swingArm(this.mainhand.getValue() == false ? EnumHand.OFF_HAND : EnumHand.MAIN_HAND);
         }
     }
-    
+
     private void doPlace() {
         BlockPos placePos = null;
         double maxDamage = 0.5;
-        for (final BlockPos pos : BlockUtil.getSphere(this.placeRange.getValue(), true)) {
-            if (!BlockUtil.canPlaceCrystal(pos, this.secondCheck.getValue())) {
-                continue;
-            }
-            final double targetDamage = EntityUtil.calculate(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5, (EntityLivingBase)this.currentTarget);
-            if (targetDamage < this.minDamage.getValue() && EntityUtil.getHealth((EntityLivingBase)this.currentTarget) > this.facePlaceHp.getValue() && !this.lowArmor) {
-                continue;
-            }
-            final double selfDamage = EntityUtil.calculate(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5, (EntityLivingBase)this.mc.player);
-            if (selfDamage + 2.0 >= EntityUtil.getHealth((EntityLivingBase)this.mc.player) || selfDamage >= targetDamage) {
-                continue;
-            }
-            if (maxDamage > targetDamage) {
-                continue;
-            }
+        for (BlockPos pos : BlockUtil.getSphere(this.placeRange.getValue().floatValue(), true)) {
+            double selfDamage;
+            double targetDamage;
+            if (!BlockUtil.canPlaceCrystal(pos, this.secondCheck.getValue()) || (targetDamage = (double)EntityUtil.calculate((double)pos.getX() + 0.5, (double)pos.getY() + 1.0, (double)pos.getZ() + 0.5, (EntityLivingBase)this.currentTarget)) < this.minDamage.getValue() && EntityUtil.getHealth((EntityLivingBase)this.currentTarget) > (float)this.facePlaceHp.getValue().intValue() && !this.lowArmor || (selfDamage = (double)EntityUtil.calculate((double)pos.getX() + 0.5, (double)pos.getY() + 1.0, (double)pos.getZ() + 0.5, (EntityLivingBase)this.mc.player)) + 2.0 >= (double)EntityUtil.getHealth((EntityLivingBase)this.mc.player) || selfDamage >= targetDamage || maxDamage > targetDamage) continue;
             placePos = pos;
             maxDamage = targetDamage;
         }
-        if (!this.offhand && this.mc.player.getHeldItemMainhand().getItem() != Items.END_CRYSTAL && !this.autoSwitch.getValue()) {
+        if (!this.offhand && this.mc.player.getHeldItemMainhand().getItem() != Items.END_CRYSTAL && !this.autoSwitch.getValue().booleanValue()) {
             return;
         }
         if (maxDamage != 0.5) {
-            if (!this.offhand && this.autoSwitch.getValue() && (this.mc.player.getHeldItemMainhand().getItem() != Items.GOLDEN_APPLE || !this.mc.player.isHandActive())) {
-                final int crystalSlot = ItemUtil.getItemFromHotbar(Items.END_CRYSTAL);
+            if (!(this.offhand || !this.autoSwitch.getValue().booleanValue() || this.mc.player.getHeldItemMainhand().getItem() == Items.GOLDEN_APPLE && this.mc.player.isHandActive())) {
+                int crystalSlot = ItemUtil.getItemFromHotbar(Items.END_CRYSTAL);
                 if (crystalSlot == -1) {
                     return;
                 }
                 this.mc.player.inventory.currentItem = crystalSlot;
                 this.mc.playerController.updateController();
             }
-            if (this.updateController.getValue()) {
+            if (this.updateController.getValue().booleanValue()) {
                 this.mc.playerController.updateController();
             }
             this.mc.getConnection().sendPacket((Packet)new CPacketPlayerTryUseItemOnBlock(placePos, EnumFacing.UP, this.offhand ? EnumHand.OFF_HAND : EnumHand.MAIN_HAND, 0.5f, 1.0f, 0.5f));
             this.placeSet.add(placePos);
             this.renderPos = placePos;
             this.currentDamage = maxDamage;
-        }
-        else {
+        } else {
             this.renderPos = null;
         }
     }
-    
+
     @Override
     public void onRender3D() {
         if (this.renderPos != null) {
-            RenderUtil.drawBoxESP(this.renderPos, ((boolean)this.sync.getValue()) ? new Color(Colours.INSTANCE.getColor()) : new Color(this.red.getValue(), this.green.getValue(), this.blue.getValue()), 1.0f, true, true, this.alpha.getValue(), 1.0f);
-            if (this.renderDamage.getValue()) {
+            RenderUtil.drawBoxESP(this.renderPos, this.sync.getValue() != false ? new Color(Colours.INSTANCE.getColor()) : new Color(this.red.getValue(), this.green.getValue(), this.blue.getValue()), 1.0f, true, true, this.alpha.getValue(), 1.0f);
+            if (this.renderDamage.getValue().booleanValue()) {
                 GlStateManager.pushMatrix();
-                RenderUtil.glBillboardDistanceScaled(this.renderPos.getX() + 0.5f, this.renderPos.getY() + 0.5f, this.renderPos.getZ() + 0.5f, (EntityPlayer)this.mc.player, 1.0f);
+                RenderUtil.glBillboardDistanceScaled((float)this.renderPos.getX() + 0.5f, (float)this.renderPos.getY() + 0.5f, (float)this.renderPos.getZ() + 0.5f, (EntityPlayer)this.mc.player, 1.0f);
                 if (this.currentDamage != -1.0) {
-                    final String damageText = String.format("%.1f", this.currentDamage);
-                    GlStateManager.translate((float)(-(this.mc.fontRenderer.getStringWidth(damageText) >> 1)), 0.0f, 0.0f);
+                    String damageText = String.format("%.1f", this.currentDamage);
+                    GlStateManager.translate((float)(-(this.mc.fontRenderer.getStringWidth(damageText) >> 1)), (float)0.0f, (float)0.0f);
                     this.mc.fontRenderer.drawStringWithShadow(damageText, 0.0f, 0.0f, -5592406);
                 }
                 GlStateManager.popMatrix();
             }
         }
     }
-    
+
     @Subscribe
-    public void onPacketReceive(final PacketEvent.Receive event) {
-        if (event.getPacket() instanceof SPacketSpawnObject && this.instant.getValue()) {
-            final SPacketSpawnObject packet = (SPacketSpawnObject)event.getPacket();
-            if (packet.getType() == 51 && this.placeSet.contains(new BlockPos(packet.getX(), packet.getY(), packet.getZ()).down())) {
-                final AccessorCPacketUseEntity hitPacket = (AccessorCPacketUseEntity)new CPacketUseEntity();
-                final int entityId = packet.getEntityID();
-                hitPacket.setEntityId(entityId);
-                hitPacket.setAction(CPacketUseEntity.Action.ATTACK);
-                this.mc.getConnection().sendPacket((Packet)hitPacket);
-                this.mc.player.swingArm(((boolean)this.mainhand.getValue()) ? EnumHand.MAIN_HAND : EnumHand.OFF_HAND);
+    public void onPacketReceive(PacketEvent.Receive event) {
+        SPacketSoundEffect packet;
+        if (event.getPacket() instanceof SPacketSpawnObject && instant.getValue()) {
+            final SPacketSpawnObject packet2 = (SPacketSpawnObject) event.getPacket ( );
+            if ( packet2.getType ( ) == 51 && placeSet.contains ( new BlockPos ( packet2.getX ( ) , packet2.getY ( ) , packet2.getZ ( ) ).down ( ) ) ) {
+                AccessorCPacketUseEntity hitPacket = (AccessorCPacketUseEntity) new CPacketUseEntity ( );
+                int entityId = packet2.getEntityID ( );
+                hitPacket.setEntityId ( entityId );
+                hitPacket.setAction ( CPacketUseEntity.Action.ATTACK );
+                this.mc.getConnection ( ).sendPacket ( (Packet) hitPacket );
+                this.mc.player.swingArm ( this.mainhand.getValue ( ) == false ? EnumHand.OFF_HAND : EnumHand.MAIN_HAND );
             }
         }
-        if (event.getPacket() instanceof SPacketSoundEffect) {
-            final SPacketSoundEffect packet2 = (SPacketSoundEffect)event.getPacket();
-            if (packet2.getCategory() == SoundCategory.BLOCKS && packet2.getSound() == SoundEvents.ENTITY_GENERIC_EXPLODE) {
-                for (final Entity entity : new ArrayList<Entity>(this.mc.world.loadedEntityList)) {
-                    if (entity instanceof EntityEnderCrystal && entity.getDistanceSq(packet2.getX(), packet2.getY(), packet2.getZ()) < 36.0) {
-                        entity.setDead();
-                        this.mc.world.removeEntity(entity);
-                    }
-                }
+        if (event.getPacket() instanceof SPacketSoundEffect && (packet = (SPacketSoundEffect)event.getPacket()).getCategory() == SoundCategory.BLOCKS && packet.getSound() == SoundEvents.ENTITY_GENERIC_EXPLODE) {
+            for (final Entity entity : new ArrayList<>(mc.world.loadedEntityList)) {
+                if (!(entity instanceof EntityEnderCrystal) || !(entity.getDistanceSq(packet.getX(), packet.getY(), packet.getZ()) < 36.0)) continue;
+                entity.setDead();
+                this.mc.world.removeEntity(entity);
             }
         }
     }
-    
-    public enum Page
-    {
-        PLACE, 
-        BREAK, 
+
+    public static enum Page {
+        PLACE,
+        BREAK,
         RENDER;
+
     }
 }
+
