@@ -1,13 +1,16 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.api.mixin.mixins.network;
 
-import org.spongepowered.asm.mixin.*;
-import net.minecraft.network.play.server.*;
-import net.minecraft.util.text.*;
-import org.spongepowered.asm.mixin.gen.*;
+import net.minecraft.network.play.server.SPacketChat;
+import net.minecraft.util.text.ITextComponent;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({ SPacketChat.class })
-public interface AccessorSPacketChat
-{
-    @Accessor("chatComponent")
-    void setChatComponent(final ITextComponent p0);
+@Mixin(value={SPacketChat.class})
+public interface AccessorSPacketChat {
+    @Accessor(value="chatComponent")
+    public void setChatComponent(ITextComponent var1);
 }
+

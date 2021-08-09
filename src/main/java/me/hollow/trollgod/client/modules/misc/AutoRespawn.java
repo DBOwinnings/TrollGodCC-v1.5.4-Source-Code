@@ -1,33 +1,34 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.misc;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.api.property.*;
-import net.minecraftforge.client.event.*;
-import net.minecraft.client.gui.*;
-import me.hollow.trollgod.api.util.*;
-import java.awt.*;
-import java.awt.datatransfer.*;
-import net.minecraftforge.fml.common.eventhandler.*;
-import net.minecraftforge.common.*;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.api.util.MessageUtil;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
+import net.minecraft.client.gui.GuiGameOver;
+import net.minecraftforge.client.event.GuiOpenEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-@ModuleManifest(label = "AutoRespawn", listen = false, category = Category.MISC, color = -835840)
-public class AutoRespawn extends Module
-{
-    private final Setting<Boolean> copyToClipboard;
-    
-    public AutoRespawn() {
-        this.copyToClipboard = (Setting<Boolean>)this.register(new Setting("Clipboard", (T)true));
-    }
-    
+@ModuleManifest(label="AutoRespawn", listen=false, category=Module.Category.MISC, color=-835840)
+public class AutoRespawn
+extends Module {
+    private final Setting<Boolean> copyToClipboard = this.register(new Setting<Boolean>("Clipboard", true));
+
     @SubscribeEvent
-    public void onGui(final GuiOpenEvent event) {
+    public void onGui(GuiOpenEvent event) {
         if (event.getGui() instanceof GuiGameOver) {
             this.mc.player.respawnPlayer();
-            final String deathCoords = "XYZ : " + (int)this.mc.player.posX + " " + (int)this.mc.player.posY + " " + (int)this.mc.player.posZ;
+            String deathCoords = "XYZ : " + (int)this.mc.player.posX + " " + (int)this.mc.player.posY + " " + (int)this.mc.player.posZ;
             MessageUtil.sendClientMessage(deathCoords, 0);
-            if (this.copyToClipboard.getValue()) {
+            if (this.copyToClipboard.getValue().booleanValue()) {
                 try {
-                    final Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                     clipboard.setContents(new StringSelection(deathCoords), null);
                 }
                 catch (Exception e) {
@@ -36,14 +37,15 @@ public class AutoRespawn extends Module
             }
         }
     }
-    
+
     @Override
     public void onEnable() {
         MinecraftForge.EVENT_BUS.register((Object)this);
     }
-    
+
     @Override
     public void onDisable() {
         MinecraftForge.EVENT_BUS.unregister((Object)this);
     }
 }
+

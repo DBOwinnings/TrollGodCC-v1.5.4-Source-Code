@@ -1,17 +1,22 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.visual;
 
-import me.hollow.trollgod.client.modules.*;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
 
-@ModuleManifest(label = "ShulkerPreview", listen = false, category = Category.VISUAL, color = 13408512)
-public class ShulkerPreview extends Module
-{
+@ModuleManifest(label="ShulkerPreview", listen=false, category=Module.Category.VISUAL, color=0xCC9900)
+public class ShulkerPreview
+extends Module {
     private static ShulkerPreview INSTANCE;
-    
+
     public ShulkerPreview() {
-        ShulkerPreview.INSTANCE = this;
+        INSTANCE = this;
     }
-    
+
     public static ShulkerPreview getInstance() {
-        return ShulkerPreview.INSTANCE;
+        return INSTANCE;
     }
 }
+

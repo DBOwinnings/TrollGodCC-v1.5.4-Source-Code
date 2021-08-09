@@ -1,81 +1,73 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.client;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.api.property.*;
-import java.awt.*;
-import me.hollow.trollgod.client.events.*;
-import me.hollow.trollgod.client.gui.*;
-import net.minecraft.client.settings.*;
-import tcb.bces.listener.*;
-import net.minecraft.client.gui.*;
+import java.awt.Color;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.client.events.UpdateEvent;
+import me.hollow.trollgod.client.gui.TrollGui;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.settings.GameSettings;
+import tcb.bces.listener.Subscribe;
 
-@ModuleManifest(label = "ClickGui", category = Category.CLIENT, key = 157)
-public class ClickGui extends Module
-{
-    public final Setting<String> prefix;
-    public final Setting<Boolean> customFov;
-    public final Setting<Float> fov;
-    public final Setting<Integer> red;
-    public final Setting<Integer> green;
-    public final Setting<Integer> blue;
-    public final Setting<Integer> hoverAlpha;
-    public final Setting<Integer> enabledAlpha;
-    public final Setting<Integer> categoryRed;
-    public final Setting<Integer> categoryGreen;
-    public final Setting<Integer> categoryBlue;
-    public final Setting<Integer> categoryAlpha;
-    public final Setting<Integer> alpha;
+@ModuleManifest(label="ClickGui", category=Module.Category.CLIENT, key=157)
+public class ClickGui
+extends Module {
+    public final Setting<String> prefix = this.register(new Setting<String>("Prefix", "."));
+    public final Setting<Boolean> customFov = this.register(new Setting<Boolean>("Custom Fov", false));
+    public final Setting<Float> fov = this.register(new Setting<Float>("Fov", Float.valueOf(150.0f), Float.valueOf(-180.0f), Float.valueOf(180.0f)));
+    public final Setting<Integer> red = this.register(new Setting<Integer>("Red", 255, 0, 255));
+    public final Setting<Integer> green = this.register(new Setting<Integer>("Green", 255, 0, 255));
+    public final Setting<Integer> blue = this.register(new Setting<Integer>("Blue", 255, 0, 255));
+    public final Setting<Integer> hoverAlpha = this.register(new Setting<Integer>("Hover Alpha", 60, 0, 255));
+    public final Setting<Integer> enabledAlpha = this.register(new Setting<Integer>("Enabled Alpha", 60, 0, 255));
+    public final Setting<Integer> categoryRed = this.register(new Setting<Integer>("Category Red", 255, 0, 255));
+    public final Setting<Integer> categoryGreen = this.register(new Setting<Integer>("Category Green", 255, 0, 255));
+    public final Setting<Integer> categoryBlue = this.register(new Setting<Integer>("Category Blue", 255, 0, 255));
+    public final Setting<Integer> categoryAlpha = this.register(new Setting<Integer>("Category Alpha", 40, 0, 255));
+    public final Setting<Integer> alpha = this.register(new Setting<Integer>("Alpha", 40, 0, 255));
     private static ClickGui INSTANCE;
-    
+
     public ClickGui() {
-        this.prefix = (Setting<String>)this.register(new Setting("Prefix", (T)"."));
-        this.customFov = (Setting<Boolean>)this.register(new Setting("Custom Fov", (T)false));
-        this.fov = (Setting<Float>)this.register(new Setting("Fov", (T)150.0f, (T)(-180.0f), (T)180.0f));
-        this.red = (Setting<Integer>)this.register(new Setting("Red", (T)255, (T)0, (T)255));
-        this.green = (Setting<Integer>)this.register(new Setting("Green", (T)255, (T)0, (T)255));
-        this.blue = (Setting<Integer>)this.register(new Setting("Blue", (T)255, (T)0, (T)255));
-        this.hoverAlpha = (Setting<Integer>)this.register(new Setting("Hover Alpha", (T)60, (T)0, (T)255));
-        this.enabledAlpha = (Setting<Integer>)this.register(new Setting("Enabled Alpha", (T)60, (T)0, (T)255));
-        this.categoryRed = (Setting<Integer>)this.register(new Setting("Category Red", (T)255, (T)0, (T)255));
-        this.categoryGreen = (Setting<Integer>)this.register(new Setting("Category Green", (T)255, (T)0, (T)255));
-        this.categoryBlue = (Setting<Integer>)this.register(new Setting("Category Blue", (T)255, (T)0, (T)255));
-        this.categoryAlpha = (Setting<Integer>)this.register(new Setting("Category Alpha", (T)40, (T)0, (T)255));
-        this.alpha = (Setting<Integer>)this.register(new Setting("Alpha", (T)40, (T)0, (T)255));
-        ClickGui.INSTANCE = this;
+        INSTANCE = this;
     }
-    
+
     public static ClickGui getInstance() {
-        return ClickGui.INSTANCE;
+        return INSTANCE;
     }
-    
-    public final int getColor(final boolean hover) {
-        return new Color(this.red.getValue(), this.green.getValue(), this.blue.getValue(), hover ? this.hoverAlpha.getValue() : ((int)this.enabledAlpha.getValue())).getRGB();
+
+    public final int getColor(boolean hover) {
+        return new Color(this.red.getValue(), this.green.getValue(), this.blue.getValue(), hover ? this.hoverAlpha.getValue().intValue() : this.enabledAlpha.getValue().intValue()).getRGB();
     }
-    
+
     @Subscribe
-    public void onTick(final UpdateEvent event) {
+    public void onTick(UpdateEvent event) {
         if (this.mc.player == null || this.mc.world == null) {
             return;
         }
         if (!(this.mc.currentScreen instanceof TrollGui)) {
             this.setEnabled(false);
         }
-        if (this.customFov.getValue()) {
-            this.mc.gameSettings.setOptionFloatValue(GameSettings.Options.FOV, (float)this.fov.getValue());
+        if (this.customFov.getValue().booleanValue()) {
+            this.mc.gameSettings.setOptionFloatValue(GameSettings.Options.FOV, this.fov.getValue().floatValue());
         }
     }
-    
+
     @Override
     public void onEnable() {
         if (this.mc.player != null) {
             this.mc.displayGuiScreen((GuiScreen)new TrollGui());
         }
     }
-    
+
     @Override
     public void onDisable() {
         if (this.mc.currentScreen instanceof TrollGui) {
-            this.mc.displayGuiScreen((GuiScreen)null);
+            this.mc.displayGuiScreen(null);
         }
     }
 }
+

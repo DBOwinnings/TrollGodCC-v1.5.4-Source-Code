@@ -1,23 +1,25 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.client;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.api.property.*;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
 
-@ModuleManifest(label = "PopCounter", category = Category.CLIENT, listen = false)
-public class PopCounter extends Module
-{
-    public static Setting<Boolean> notify;
+@ModuleManifest(label="PopCounter", category=Module.Category.CLIENT, listen=false)
+public class PopCounter
+extends Module {
+    public static Setting<Boolean> notify = new Setting<Boolean>("Notify", true);
     private static PopCounter INSTANCE;
-    
+
     public PopCounter() {
-        (PopCounter.INSTANCE = this).addSetting(PopCounter.notify);
+        INSTANCE = this;
+        this.addSetting(notify);
     }
-    
+
     public static PopCounter getInstance() {
-        return PopCounter.INSTANCE;
-    }
-    
-    static {
-        PopCounter.notify = new Setting<Boolean>("Notify", true);
+        return INSTANCE;
     }
 }
+

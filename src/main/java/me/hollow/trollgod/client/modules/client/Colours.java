@@ -1,39 +1,41 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.client;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.api.property.*;
-import me.hollow.trollgod.client.events.*;
-import java.awt.*;
-import tcb.bces.listener.*;
+import java.awt.Color;
+import me.hollow.trollgod.api.property.Setting;
+import me.hollow.trollgod.client.events.ClientEvent;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
+import tcb.bces.listener.Subscribe;
 
-@ModuleManifest(label = "Colours", category = Category.CLIENT, persistent = true)
-public class Colours extends Module
-{
-    private final Setting<Integer> red;
-    private final Setting<Integer> green;
-    private final Setting<Integer> blue;
+@ModuleManifest(label="Colours", category=Module.Category.CLIENT, persistent=true)
+public class Colours
+extends Module {
+    private final Setting<Integer> red = this.register(new Setting<Integer>("Red", 255, 0, 255));
+    private final Setting<Integer> green = this.register(new Setting<Integer>("Green", 255, 0, 255));
+    private final Setting<Integer> blue = this.register(new Setting<Integer>("Blue", 255, 0, 255));
     public static Colours INSTANCE;
     private int color;
-    
+
     public Colours() {
-        this.red = (Setting<Integer>)this.register(new Setting("Red", (T)255, (T)0, (T)255));
-        this.green = (Setting<Integer>)this.register(new Setting("Green", (T)255, (T)0, (T)255));
-        this.blue = (Setting<Integer>)this.register(new Setting("Blue", (T)255, (T)0, (T)255));
-        Colours.INSTANCE = this;
+        INSTANCE = this;
     }
-    
+
     @Subscribe
-    public void onSetting(final ClientEvent event) {
+    public void onSetting(ClientEvent event) {
         this.color = new Color(this.red.getValue(), this.green.getValue(), this.blue.getValue()).getRGB();
     }
-    
+
     @Override
     public void onLoad() {
         this.color = new Color(this.red.getValue(), this.green.getValue(), this.blue.getValue()).getRGB();
     }
-    
+
     @Override
     public final int getColor() {
         return this.color;
     }
 }
+

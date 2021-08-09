@@ -74,7 +74,7 @@ public class CFontRenderer extends CFont
         GL11.glBindTexture(3553, this.tex.getGlTextureId());
         for (int i = 0; i < text.length(); ++i) {
             final char character = text.charAt(i);
-            if (character == '§') {
+            if (character == '\uFFFD' ) {
                 int colorIndex = "0123456789abcdefklmnor".indexOf(text.charAt(i + 1));
                 if (colorIndex < 16) {
                     bold = false;
@@ -143,7 +143,7 @@ public class CFontRenderer extends CFont
         final CharData[] currentData = this.charData;
         for (int size = text.length(), i = 0; i < size; ++i) {
             final char character = text.charAt(i);
-            if (character == '§') {
+            if (character == '\uFFFD' ) {
                 ++i;
             }
             else if (character < currentData.length) {

@@ -1,23 +1,28 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.api.mixin.mixins.network;
 
-import net.minecraft.network.play.client.*;
-import net.minecraft.network.*;
-import me.hollow.trollgod.client.modules.misc.*;
-import net.minecraft.client.*;
-import org.spongepowered.asm.mixin.*;
+import me.hollow.trollgod.client.modules.misc.NoFall;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.play.client.CPacketPlayer;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
+import org.spongepowered.asm.mixin.Shadow;
 
-@Mixin({ CPacketPlayer.class })
-public class MixinCPacketPlayer
-{
+@Mixin(value={CPacketPlayer.class})
+public class MixinCPacketPlayer {
     @Shadow
     protected boolean onGround;
-    
+
     @Overwrite
-    public void writePacketData(final PacketBuffer buf) {
+    public void writePacketData(PacketBuffer buf) {
         if (NoFall.INSTANCE.isEnabled() && Minecraft.getMinecraft().player.fallDistance > 2.0f) {
             buf.writeByte(1);
             return;
         }
-        buf.writeByte((int)(this.onGround ? 1 : 0));
+        buf.writeByte(this.onGround ? 1 : 0);
     }
 }
+

@@ -1,23 +1,28 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.client.modules.misc;
 
-import me.hollow.trollgod.client.modules.*;
-import me.hollow.trollgod.client.events.*;
-import net.minecraft.network.play.server.*;
-import me.hollow.trollgod.api.mixin.mixins.network.*;
-import tcb.bces.listener.*;
+import me.hollow.trollgod.api.mixin.mixins.network.AccessorSPacketPlayerPosLook;
+import me.hollow.trollgod.client.events.PacketEvent;
+import me.hollow.trollgod.client.modules.Module;
+import me.hollow.trollgod.client.modules.ModuleManifest;
+import net.minecraft.network.play.server.SPacketPlayerPosLook;
+import tcb.bces.listener.Subscribe;
 
-@ModuleManifest(label = "NoRotate", category = Category.MISC, color = -11870034)
-public class NoRotate extends Module
-{
+@ModuleManifest(label="NoRotate", category=Module.Category.MISC, color=-11870034)
+public class NoRotate
+extends Module {
     @Subscribe
-    public void onPacket(final PacketEvent.Receive event) {
+    public void onPacket(PacketEvent.Receive event) {
         if (this.isNull()) {
             return;
         }
         if (event.getPacket() instanceof SPacketPlayerPosLook) {
-            final AccessorSPacketPlayerPosLook packet = (AccessorSPacketPlayerPosLook)event.getPacket();
+            AccessorSPacketPlayerPosLook packet = (AccessorSPacketPlayerPosLook)event.getPacket();
             packet.setPitch(this.mc.player.rotationPitch);
             packet.setYaw(this.mc.player.rotationYaw);
         }
     }
 }
+

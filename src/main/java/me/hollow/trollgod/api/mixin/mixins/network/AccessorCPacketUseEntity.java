@@ -1,15 +1,18 @@
+/*
+ * Decompiled with CFR 0.151.
+ */
 package me.hollow.trollgod.api.mixin.mixins.network;
 
-import org.spongepowered.asm.mixin.*;
-import net.minecraft.network.play.client.*;
-import org.spongepowered.asm.mixin.gen.*;
+import net.minecraft.network.play.client.CPacketUseEntity;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({ CPacketUseEntity.class })
-public interface AccessorCPacketUseEntity
-{
-    @Accessor("entityId")
-    void setEntityId(final int p0);
-    
-    @Accessor("action")
-    void setAction(final CPacketUseEntity.Action p0);
+@Mixin(value={CPacketUseEntity.class})
+public interface AccessorCPacketUseEntity {
+    @Accessor(value="entityId")
+    public void setEntityId(int var1);
+
+    @Accessor(value="action")
+    public void setAction(CPacketUseEntity.Action var1);
 }
+
