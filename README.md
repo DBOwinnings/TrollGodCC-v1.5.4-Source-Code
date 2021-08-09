@@ -1,5 +1,7 @@
 # TrollGodCC v1.5.4 Source Code Leaked (LONDON EDITION)
 
+**SRC CLEANED BY CR33PYLEM0NDE AND FIXED BY PERRY**
+
 > **Contact me if you need anything! dbo#1769**
 
  
